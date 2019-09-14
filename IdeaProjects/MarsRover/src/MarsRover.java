@@ -146,8 +146,8 @@ public class MarsRover {
                 }
             }
             parentNodeCumulativeCost = ucsQueue.poll();
+            if(parentNodeCumulativeCost==null) return new ArrayList<>();
             retrieved = parentNodeCumulativeCost.node;
-            if(retrieved==null) return new ArrayList<>();
             outputSequence.add(retrieved);
             if(retrieved.get(0).equals(target.get(0)) && retrieved.get(1).equals(target.get(1))) break;
             else {
@@ -185,10 +185,6 @@ public class MarsRover {
                                 sY + traverseY[i]),totalCost));
                     }
                 }
-            }
-           PriorityQueue<UCSNodeCumulativeCost> dup = new PriorityQueue<>(aStarQueue);
-            for(int i =0;i<5;i++){
-                UCSNodeCumulativeCost ucsNodeCumulativeCost = dup.poll();
             }
             parentNodeCumulativeCost = aStarQueue.poll();
             if(parentNodeCumulativeCost==null) return new ArrayList<>();
