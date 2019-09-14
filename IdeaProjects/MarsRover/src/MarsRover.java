@@ -16,10 +16,8 @@ class UCSNodeCumulativeCost {
 class UCSNodeCumulativeCostComparator implements Comparator<UCSNodeCumulativeCost>{
     public int compare(UCSNodeCumulativeCost uscNodeCumulativeCost1, UCSNodeCumulativeCost uscNodeCumulativeCost2) {
         if (uscNodeCumulativeCost1.cumulativeCost <= uscNodeCumulativeCost2.cumulativeCost)
-            return uscNodeCumulativeCost1.cumulativeCost;
-        else if (uscNodeCumulativeCost1.cumulativeCost > uscNodeCumulativeCost2.cumulativeCost)
-            return uscNodeCumulativeCost2.cumulativeCost;
-        return 0;
+            return -1;
+        else return 1;
     }
 }
 
@@ -83,8 +81,8 @@ public class MarsRover {
     }
 
     private int heuristic(List<Integer> currentNode, List<Integer> targetNode, int[][] zFactorArray){
-        int sourceTargetX = targetNode.get(0)-currentNode.get(0);
-        int sourceTargetY = targetNode.get(1)-currentNode.get(1);
+        int sourceTargetX = 10*(targetNode.get(0)-currentNode.get(0));
+        int sourceTargetY = 10*(targetNode.get(1)-currentNode.get(1));
         int zDifference =
                 zFactorArray[targetNode.get(0)][targetNode.get(1)] - zFactorArray[currentNode.get(0)][currentNode.get(1)];
         double result = Math.sqrt(Math.pow(sourceTargetX,2)+Math.pow(sourceTargetY,2)+Math.pow(zDifference,2));
@@ -174,17 +172,23 @@ public class MarsRover {
                         Math.abs(inputData[sX+traverseX[i]][sY+traverseY[i]]-inputData[sX][sY])<=maxZ) {
                     if (!parentMap.containsKey(Arrays.asList(sX + traverseX[i], sY + traverseY[i]))) {
                         int obtainedZ = Math.abs(inputData[sX+traverseX[i]][sY+traverseY[i]]-inputData[sX][sY]);
-                        int diagonalValue =REGULAR_COST;
+                        int diagonalValue = REGULAR_COST;
                         if(i>=4) diagonalValue = DIAGONAL_COST;
                         parentMap.putIfAbsent(Arrays.asList(sX + traverseX[i], sY + traverseY[i]),
                                 new UCSNodeCumulativeCost(Arrays.asList(sX, sY),
                                         parentMap.get(Arrays.asList(sX, sY)).cumulativeCost+diagonalValue+obtainedZ));
+                        int check = parentMap.get(Arrays.asList(sX, sY)).cumulativeCost+diagonalValue+obtainedZ;
                         int totalCost = parentMap.get(Arrays.asList(sX+traverseX[i],sY+traverseY[i])).cumulativeCost+
-                                heuristic(Arrays.asList(sX+traverseX[i],sY+traverseY[i]),Arrays.asList(sX,sY),inputData);
+                                heuristic(Arrays.asList(sX+traverseX[i],sY+traverseY[i]),
+                                        Arrays.asList(target.get(0), target.get(1)), inputData);
                         aStarQueue.add(new UCSNodeCumulativeCost(Arrays.asList(sX + traverseX[i],
                                 sY + traverseY[i]),totalCost));
                     }
                 }
+            }
+           PriorityQueue<UCSNodeCumulativeCost> dup = new PriorityQueue<>(aStarQueue);
+            for(int i =0;i<5;i++){
+                UCSNodeCumulativeCost ucsNodeCumulativeCost = dup.poll();
             }
             parentNodeCumulativeCost = aStarQueue.poll();
             if(parentNodeCumulativeCost==null) return new ArrayList<>();
@@ -201,7 +205,7 @@ public class MarsRover {
 
    private byte[] formatOutput(String shortestPath){
         return shortestPath.replace("[","").replace("],"," ").
-                replace(", ",",").replace("]]","").getBytes();
+                replace(", ",",").replace("]]","").replace("  "," ").getBytes();
    }
 
     public static void main(String[] args) throws IOException{
