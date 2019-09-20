@@ -90,6 +90,11 @@ public class MarsRover {
     }
 
     public List<List<Integer>> runBFS(int[][] inputData, List<Integer> source, List<Integer> target, int maxZ){
+       if(source.equals(target)){
+           List<List<Integer>> shortestPath = new ArrayList<>();
+           shortestPath.add(Arrays.asList(source.get(1),source.get(0)));
+           return shortestPath;
+       }
        int rowSize = inputData.length;
        int columnSize = inputData[0].length;
        outputSequence.add(Arrays.asList(source.get(0),source.get(1)));
@@ -120,6 +125,12 @@ public class MarsRover {
    }
 
     private List<List<Integer>> runUCS(int[][] inputData, List<Integer> source, List<Integer> target, int maxZ){
+        //ucs -- update the distance if it still exists
+        if(source.equals(target)){
+            List<List<Integer>> shortestPath = new ArrayList<>();
+            shortestPath.add(Arrays.asList(source.get(1),source.get(0)));
+            return shortestPath;
+        }
         int rowSize = inputData.length;
         int columnSize = inputData[0].length;
         outputSequence.add(Arrays.asList(source.get(0),source.get(1)));
@@ -132,16 +143,26 @@ public class MarsRover {
             for(int i=0;i<8;i++){ // add all children to queue
                 if(sX+traverseX[i]>=0 && sY+traverseY[i]>=0 && sX+traverseX[i]<rowSize && sY+traverseY[i]<columnSize &&
                         Math.abs(inputData[sX+traverseX[i]][sY+traverseY[i]]-inputData[sX][sY])<=maxZ) {
+                  //  int obtainedZ = Math.abs(inputData[sX+traverseX[i]][sY+traverseY[i]]-inputData[sX][sY]);
+                    int totalCost = parentNodeCumulativeCost.cumulativeCost+REGULAR_COST;
+                    if(i>=4) totalCost+=4;
                     if (!parentMap.containsKey(Arrays.asList(sX + traverseX[i], sY + traverseY[i]))) {
-                        int obtainedZ = Math.abs(inputData[sX+traverseX[i]][sY+traverseY[i]]-inputData[sX][sY]);
-                        if(i>=4) ucsQueue.add(new UCSNodeCumulativeCost(Arrays.asList(sX + traverseX[i],
-                                sY + traverseY[i]),parentNodeCumulativeCost.cumulativeCost+DIAGONAL_COST+obtainedZ));
-                        else ucsQueue.add(new UCSNodeCumulativeCost(Arrays.asList(sX + traverseX[i],
-                                sY + traverseY[i]),parentNodeCumulativeCost.cumulativeCost+REGULAR_COST+obtainedZ));
-                        int totalCost = parentNodeCumulativeCost.cumulativeCost+obtainedZ+REGULAR_COST;
-                        if(i>=4) totalCost+=4;
+                        ucsQueue.add(new UCSNodeCumulativeCost(Arrays.asList(sX + traverseX[i],
+                                sY + traverseY[i]),totalCost));
                         parentMap.putIfAbsent(Arrays.asList(sX + traverseX[i], sY + traverseY[i]),
                                 new UCSNodeCumulativeCost(Arrays.asList(sX, sY),totalCost));
+                   }
+                   else{
+                       if(totalCost<parentMap.get(Arrays.asList(sX + traverseX[i], sY + traverseY[i])).cumulativeCost){
+                           parentMap.put(Arrays.asList(sX + traverseX[i], sY + traverseY[i]),
+                                   new UCSNodeCumulativeCost(Arrays.asList(sX,sY),totalCost));
+                           UCSNodeCumulativeCost existingNode = new UCSNodeCumulativeCost(Arrays.asList(sX + traverseX[i]
+                                   , sY + traverseY[i]),
+                                   parentMap.get(Arrays.asList(sX + traverseX[i], sY + traverseY[i])).cumulativeCost);
+                           ucsQueue.remove(existingNode);
+                           existingNode.cumulativeCost=totalCost;
+                           ucsQueue.add(existingNode);
+                       }
                     }
                 }
             }
@@ -155,10 +176,16 @@ public class MarsRover {
                 sY=retrieved.get(1);
             }
         }
+        System.out.println(parentNodeCumulativeCost.cumulativeCost);
         return getShortestPath(parentMap,retrieved);
     }
 
     private List<List<Integer>> runAStar(int[][] inputData, List<Integer> source, List<Integer> target, int maxZ){
+        if(source.equals(target)){
+            List<List<Integer>> shortestPath = new ArrayList<>();
+            shortestPath.add(Arrays.asList(source.get(1),source.get(0)));
+            return shortestPath;
+        }
         int rowSize = inputData.length;
         int columnSize = inputData[0].length;
         outputSequence.add(Arrays.asList(source.get(0),source.get(1)));
@@ -166,26 +193,52 @@ public class MarsRover {
         PriorityQueue<UCSNodeCumulativeCost> aStarQueue = new PriorityQueue<>(new UCSNodeCumulativeCostComparator());
         int sX = source.get(0), sY = source.get(1);
         UCSNodeCumulativeCost parentNodeCumulativeCost ;
+        int oldCost = heuristic(source,target,inputData);
+        int totalCost=0;
         while(true){
             for(int i=0;i<8;i++){ // add all children to queue
                 if(sX+traverseX[i]>=0 && sY+traverseY[i]>=0 && sX+traverseX[i]<rowSize && sY+traverseY[i]<columnSize &&
                         Math.abs(inputData[sX+traverseX[i]][sY+traverseY[i]]-inputData[sX][sY])<=maxZ) {
+                    int obtainedZ = Math.abs(inputData[sX+traverseX[i]][sY+traverseY[i]]-inputData[sX][sY]);
+                    int diagonalValue = REGULAR_COST;
+                    if(i>=4) diagonalValue = DIAGONAL_COST;
                     if (!parentMap.containsKey(Arrays.asList(sX + traverseX[i], sY + traverseY[i]))) {
-                        int obtainedZ = Math.abs(inputData[sX+traverseX[i]][sY+traverseY[i]]-inputData[sX][sY]);
-                        int diagonalValue = REGULAR_COST;
-                        if(i>=4) diagonalValue = DIAGONAL_COST;
-                        parentMap.putIfAbsent(Arrays.asList(sX + traverseX[i], sY + traverseY[i]),
-                                new UCSNodeCumulativeCost(Arrays.asList(sX, sY),
-                                        parentMap.get(Arrays.asList(sX, sY)).cumulativeCost+diagonalValue+obtainedZ));
-                        int check = parentMap.get(Arrays.asList(sX, sY)).cumulativeCost+diagonalValue+obtainedZ;
-                        int totalCost = parentMap.get(Arrays.asList(sX+traverseX[i],sY+traverseY[i])).cumulativeCost+
+                         totalCost = parentMap.get(Arrays.asList(sX,sY)).cumulativeCost+diagonalValue+obtainedZ+
                                 heuristic(Arrays.asList(sX+traverseX[i],sY+traverseY[i]),
                                         Arrays.asList(target.get(0), target.get(1)), inputData);
-                        aStarQueue.add(new UCSNodeCumulativeCost(Arrays.asList(sX + traverseX[i],
+                         if(oldCost>totalCost) {
+                             System.out.println(oldCost+" "+totalCost);
+                             System.out.println("here");
+                             totalCost=oldCost;
+                         }
+                         parentMap.putIfAbsent(Arrays.asList(sX + traverseX[i], sY + traverseY[i]),
+                                new UCSNodeCumulativeCost(Arrays.asList(sX, sY),
+                                        parentMap.get(Arrays.asList(sX, sY)).cumulativeCost+diagonalValue+obtainedZ));
+                         aStarQueue.add(new UCSNodeCumulativeCost(Arrays.asList(sX + traverseX[i],
                                 sY + traverseY[i]),totalCost));
+                    }
+                    else{
+                        if(parentMap.get(Arrays.asList(sX,sY)).cumulativeCost+diagonalValue+obtainedZ
+                                <parentMap.get(Arrays.asList(sX+traverseX[i], sY+traverseY[i])).cumulativeCost){
+                            parentMap.put(Arrays.asList(sX + traverseX[i], sY + traverseY[i]),
+                                    new UCSNodeCumulativeCost(Arrays.asList(sX,sY), parentMap.
+                                            get(Arrays.asList(sX, sY)).cumulativeCost+diagonalValue+obtainedZ));
+                            int heuristicCurrentNode = heuristic(Arrays.asList(sX+traverseX[i],
+                                    sY+traverseY[i]), Arrays.asList(target.get(0), target.get(1)), inputData);
+                             totalCost =
+                                    parentMap.get(Arrays.asList(sX+traverseX[i], sY+traverseY[i])).cumulativeCost+heuristicCurrentNode;
+                            if(oldCost>totalCost) totalCost=oldCost;
+                            UCSNodeCumulativeCost existingNode =
+                                    new UCSNodeCumulativeCost(Arrays.asList(sX + traverseX[i], sY + traverseY[i]), totalCost);
+                            aStarQueue.remove(existingNode);
+                            existingNode.cumulativeCost=
+                                    parentMap.get(Arrays.asList(sX,sY)).cumulativeCost+diagonalValue+obtainedZ+heuristicCurrentNode;
+                            aStarQueue.add(existingNode);
+                        }
                     }
                 }
             }
+            oldCost=totalCost;
             parentNodeCumulativeCost = aStarQueue.poll();
             if(parentNodeCumulativeCost==null) return new ArrayList<>();
             retrieved = parentNodeCumulativeCost.node;
@@ -196,6 +249,7 @@ public class MarsRover {
                 sY=retrieved.get(1);
             }
         }
+        System.out.println(parentNodeCumulativeCost.cumulativeCost);
         return getShortestPath(parentMap,retrieved);
     }
 
@@ -214,50 +268,33 @@ public class MarsRover {
         int maxZfactor = Integer.parseInt(inputList.get(3));
         Path outputPath = Paths.get(System.getProperty("user.dir")+marsRover.OUTPUT_TXT);
         String resultSet = "";
-        List<List<Integer>> shortestPath ;
-        if(marsRover.parseInputTxt(inputList).equals("BFS")){
-            for(int i=0;i<targetNodes.size();i++){
-                shortestPath = marsRover.runBFS(zfactorArray,sourceNodes,
-                        targetNodes.get(i),maxZfactor);
-                if(i!=targetNodes.size()-1){
-                    if(shortestPath.isEmpty()) resultSet=resultSet.concat(marsRover.FAILURE_MSG+"\n");
-                    else resultSet=resultSet.concat(shortestPath.toString()+"\n") ;
-                }
-                else{
-                    if(shortestPath.isEmpty()) resultSet=resultSet.concat(marsRover.FAILURE_MSG);
-                    else resultSet=resultSet.concat(shortestPath.toString()) ;
-                }
+        List<List<Integer>> shortestPath = null;
+        for (int i = 0; i < targetNodes.size(); i++) {
+            switch (marsRover.parseInputTxt(inputList)){
+                case "BFS":
+                    shortestPath = marsRover.runBFS(zfactorArray, sourceNodes,
+                            targetNodes.get(i), maxZfactor);
+                    break;
+                case "UCS":
+                    shortestPath = marsRover.runUCS(zfactorArray, sourceNodes,
+                            targetNodes.get(i), maxZfactor);
+                    break;
+                case "A*":
+                    shortestPath = marsRover.runAStar(zfactorArray, sourceNodes,
+                            targetNodes.get(i), maxZfactor);
+                    break;
+                default:
+                    Files.write(outputPath, marsRover.FAILURE_MSG.getBytes());
             }
-        }
-        else if(marsRover.parseInputTxt(inputList).equals("UCS")){
-            for(int i=0;i<targetNodes.size();i++){
-                shortestPath = marsRover.runUCS(zfactorArray,sourceNodes,
-                        targetNodes.get(i),maxZfactor);
-                if(i!=targetNodes.size()-1){
-                    if(shortestPath.isEmpty()) resultSet=resultSet.concat(marsRover.FAILURE_MSG+"\n");
-                    else resultSet=resultSet.concat(shortestPath.toString()+"\n") ;
-                }
-                else{
-                    if(shortestPath.isEmpty()) resultSet=resultSet.concat(marsRover.FAILURE_MSG);
-                    else resultSet=resultSet.concat(shortestPath.toString()) ;
-                }
+            if (i != targetNodes.size() - 1) {
+                if (shortestPath.isEmpty()) resultSet = resultSet.concat(marsRover.FAILURE_MSG + "\n");
+                else resultSet = resultSet.concat(shortestPath.toString() + "\n");
+            } else {
+                if (shortestPath.isEmpty()) resultSet = resultSet.concat(marsRover.FAILURE_MSG);
+                else resultSet = resultSet.concat(shortestPath.toString());
             }
+            marsRover.parentMap.clear();
         }
-        else if(marsRover.parseInputTxt(inputList).equals("A*")){
-            for(int i=0;i<targetNodes.size();i++){
-                shortestPath = marsRover.runAStar(zfactorArray,sourceNodes,
-                        targetNodes.get(i),maxZfactor);
-                if(i!=targetNodes.size()-1){
-                    if(shortestPath.isEmpty()) resultSet=resultSet.concat(marsRover.FAILURE_MSG+"\n");
-                    else resultSet=resultSet.concat(shortestPath.toString()+"\n") ;
-                }
-                else{
-                    if(shortestPath.isEmpty()) resultSet=resultSet.concat(marsRover.FAILURE_MSG);
-                    else resultSet=resultSet.concat(shortestPath.toString()) ;
-                }
-            }
-        }
-        else Files.write(outputPath,marsRover.FAILURE_MSG.getBytes());
         Files.write(outputPath,marsRover.formatOutput(resultSet));
     }
 }
