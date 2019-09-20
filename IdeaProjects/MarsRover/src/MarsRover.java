@@ -24,8 +24,8 @@ class UCSNodeCumulativeCostComparator implements Comparator<UCSNodeCumulativeCos
 public class MarsRover {
     private final int DIAGONAL_COST = 14;
     private final int REGULAR_COST = 10;
-    private final String INPUT_TXT = "/src/input.txt";
-    private final String OUTPUT_TXT = "/src/output.txt";
+    private final String INPUT_TXT = "/input.txt";
+    private final String OUTPUT_TXT = "/output.txt";
     private final String FAILURE_MSG = "FAIL";
     private final int[] traverseX = {1,0,-1,0,1,1,-1,-1};
     private final int[] traverseY = {0,-1,0,1,1,-1,1,-1};
@@ -206,11 +206,6 @@ public class MarsRover {
                          totalCost = parentMap.get(Arrays.asList(sX,sY)).cumulativeCost+diagonalValue+obtainedZ+
                                 heuristic(Arrays.asList(sX+traverseX[i],sY+traverseY[i]),
                                         Arrays.asList(target.get(0), target.get(1)), inputData);
-                         if(oldCost>totalCost) {
-                             System.out.println(oldCost+" "+totalCost);
-                             System.out.println("here");
-                             totalCost=oldCost;
-                         }
                          parentMap.putIfAbsent(Arrays.asList(sX + traverseX[i], sY + traverseY[i]),
                                 new UCSNodeCumulativeCost(Arrays.asList(sX, sY),
                                         parentMap.get(Arrays.asList(sX, sY)).cumulativeCost+diagonalValue+obtainedZ));
@@ -225,9 +220,8 @@ public class MarsRover {
                                             get(Arrays.asList(sX, sY)).cumulativeCost+diagonalValue+obtainedZ));
                             int heuristicCurrentNode = heuristic(Arrays.asList(sX+traverseX[i],
                                     sY+traverseY[i]), Arrays.asList(target.get(0), target.get(1)), inputData);
-                             totalCost =
+                            totalCost =
                                     parentMap.get(Arrays.asList(sX+traverseX[i], sY+traverseY[i])).cumulativeCost+heuristicCurrentNode;
-                            if(oldCost>totalCost) totalCost=oldCost;
                             UCSNodeCumulativeCost existingNode =
                                     new UCSNodeCumulativeCost(Arrays.asList(sX + traverseX[i], sY + traverseY[i]), totalCost);
                             aStarQueue.remove(existingNode);
@@ -249,7 +243,7 @@ public class MarsRover {
                 sY=retrieved.get(1);
             }
         }
-        System.out.println(parentNodeCumulativeCost.cumulativeCost);
+      //  System.out.println(parentNodeCumulativeCost.cumulativeCost);
         return getShortestPath(parentMap,retrieved);
     }
 
