@@ -1,7 +1,10 @@
 import java.io.IOException;
+import java.lang.reflect.Array;
 import java.nio.file.Files;
 import java.nio.file.Path;
 import java.nio.file.Paths;
+import java.time.Duration;
+import java.time.Instant;
 import java.util.*;
 
 class UCSNodeCumulativeCost {
@@ -59,16 +62,18 @@ public class MarsRover {
                 [Integer.parseInt(inputStringList.get(1).split("\\s+")[0])];
         int zfactorValuesStartLine = inputStringList.size() -
                 Integer.parseInt(inputStringList.get(1).split("\\s+")[1]);
-        for(int i = zfactorValuesStartLine; i<inputStringList.size(); i++){
+        ArrayList<String> check = new ArrayList<>(inputStringList);
+        int checkSize = check.size();
+        for(int i = zfactorValuesStartLine; i<checkSize; i++){
+            String[] temp= inputStringList.get(i).split("\\s+");
             for(int j=0; j<Integer.parseInt(inputStringList.get(1).split("\\s+")[0]); j++){
-                zfactorArray[i-zfactorValuesStartLine][j] = Integer.parseInt(inputStringList.get(i).split("\\s+")[j]);
+                zfactorArray[i-zfactorValuesStartLine][j] = Integer.parseInt(temp[j]);
             }
         }
         return zfactorArray;
     }
 
-    private List<List<Integer>> getShortestPath(Map<List<Integer>,UCSNodeCumulativeCost> parentMap,
-                                                List<Integer> retrievedNode){
+    private List<List<Integer>> getShortestPath(Map<List<Integer>,UCSNodeCumulativeCost> parentMap, List<Integer> retrievedNode){
         List<List<Integer>> shortestPath = new ArrayList<>();
         List<Integer> parent = parentMap.get(retrievedNode).node;
         shortestPath.add(Arrays.asList(retrievedNode.get(1),retrievedNode.get(0)));
@@ -176,7 +181,7 @@ public class MarsRover {
                 sY=retrieved.get(1);
             }
         }
-        System.out.println(parentNodeCumulativeCost.cumulativeCost);
+       // System.out.println(parentNodeCumulativeCost.cumulativeCost);
         return getShortestPath(parentMap,retrieved);
     }
 
@@ -193,7 +198,6 @@ public class MarsRover {
         PriorityQueue<UCSNodeCumulativeCost> aStarQueue = new PriorityQueue<>(new UCSNodeCumulativeCostComparator());
         int sX = source.get(0), sY = source.get(1);
         UCSNodeCumulativeCost parentNodeCumulativeCost ;
-        int oldCost = heuristic(source,target,inputData);
         int totalCost=0;
         while(true){
             for(int i=0;i<8;i++){ // add all children to queue
@@ -204,8 +208,10 @@ public class MarsRover {
                     if(i>=4) diagonalValue = DIAGONAL_COST;
                     if (!parentMap.containsKey(Arrays.asList(sX + traverseX[i], sY + traverseY[i]))) {
                          totalCost = parentMap.get(Arrays.asList(sX,sY)).cumulativeCost+diagonalValue+obtainedZ+
-                                heuristic(Arrays.asList(sX+traverseX[i],sY+traverseY[i]),
-                                        Arrays.asList(target.get(0), target.get(1)), inputData);
+                                heuristic(Arrays.asList(sX+traverseX[i],sY+traverseY[i]), target, inputData); // f(n)
+                      /*  oldCost=
+                                heuristic(Arrays.asList(sX,sY),target,inputData)+parentMap.get(Arrays.asList(sX,sY)).cumulativeCost;
+                         if(oldCost>totalCost) totalCost=oldCost;*/
                          parentMap.putIfAbsent(Arrays.asList(sX + traverseX[i], sY + traverseY[i]),
                                 new UCSNodeCumulativeCost(Arrays.asList(sX, sY),
                                         parentMap.get(Arrays.asList(sX, sY)).cumulativeCost+diagonalValue+obtainedZ));
@@ -219,20 +225,23 @@ public class MarsRover {
                                     new UCSNodeCumulativeCost(Arrays.asList(sX,sY), parentMap.
                                             get(Arrays.asList(sX, sY)).cumulativeCost+diagonalValue+obtainedZ));
                             int heuristicCurrentNode = heuristic(Arrays.asList(sX+traverseX[i],
-                                    sY+traverseY[i]), Arrays.asList(target.get(0), target.get(1)), inputData);
+                                    sY+traverseY[i]), target, inputData);
                             totalCost =
                                     parentMap.get(Arrays.asList(sX+traverseX[i], sY+traverseY[i])).cumulativeCost+heuristicCurrentNode;
                             UCSNodeCumulativeCost existingNode =
                                     new UCSNodeCumulativeCost(Arrays.asList(sX + traverseX[i], sY + traverseY[i]), totalCost);
                             aStarQueue.remove(existingNode);
-                            existingNode.cumulativeCost=
+                            totalCost =
                                     parentMap.get(Arrays.asList(sX,sY)).cumulativeCost+diagonalValue+obtainedZ+heuristicCurrentNode;
+                          /*  oldCost=heuristic(Arrays.asList(sX,sY),target,inputData)+parentMap.get(Arrays.asList(sX,
+                                    sY)).cumulativeCost;
+                            if(oldCost>totalCost) totalCost=oldCost;*/
+                            existingNode.cumulativeCost=totalCost;
                             aStarQueue.add(existingNode);
                         }
                     }
                 }
             }
-            oldCost=totalCost;
             parentNodeCumulativeCost = aStarQueue.poll();
             if(parentNodeCumulativeCost==null) return new ArrayList<>();
             retrieved = parentNodeCumulativeCost.node;
@@ -243,9 +252,10 @@ public class MarsRover {
                 sY=retrieved.get(1);
             }
         }
-      //  System.out.println(parentNodeCumulativeCost.cumulativeCost);
+        System.out.println(parentMap.get(retrieved).cumulativeCost);
         return getShortestPath(parentMap,retrieved);
-    }
+        }
+
 
    private byte[] formatOutput(String shortestPath){
         return shortestPath.replace("[","").replace("],"," ").
@@ -263,8 +273,9 @@ public class MarsRover {
         Path outputPath = Paths.get(System.getProperty("user.dir")+marsRover.OUTPUT_TXT);
         String resultSet = "";
         List<List<Integer>> shortestPath = null;
+        String algorithm = marsRover.parseInputTxt(inputList);
         for (int i = 0; i < targetNodes.size(); i++) {
-            switch (marsRover.parseInputTxt(inputList)){
+            switch (algorithm){
                 case "BFS":
                     shortestPath = marsRover.runBFS(zfactorArray, sourceNodes,
                             targetNodes.get(i), maxZfactor);
@@ -288,6 +299,7 @@ public class MarsRover {
                 else resultSet = resultSet.concat(shortestPath.toString());
             }
             marsRover.parentMap.clear();
+            marsRover.outputSequence.clear();
         }
         Files.write(outputPath,marsRover.formatOutput(resultSet));
     }
